@@ -19,9 +19,23 @@ st.write('Explore predictions, SHAP explanations, and data drift checks.')
 st.subheader('Data Preview')
 st.dataframe(data.head())
 
+
 # Make predictions
 if model:
-    X = data.drop(['target'], axis=1, errors='ignore')
+    drop_cols = ['gross_sales', 'book_name', 'author', 'genre', 'publisher', 'language_code']
+    features = [col for col in data.columns if col not in drop_cols]
+    X = data[features].copy()
+
+    # Encode categorical columns as in training
+    for col in X.columns:
+        if X[col].dtype == 'object':
+            X[col] = X[col].replace('unknown', np.nan)
+            X[col] = X[col].fillna('missing')
+            X[col] = X[col].astype('category').cat.codes
+
+    # Impute any remaining NaNs with zero
+    X = X.fillna(0)
+
     preds = model.predict(X)
     st.subheader('Predictions')
     st.write(preds)
@@ -34,8 +48,7 @@ if model:
 
     # Metrics
     st.subheader('Model Metrics')
-    # Add your metrics calculation here
-    st.write('Accuracy, F1, etc.')
+    st.write('RMSE and R2 are shown during training. Add more metrics if needed.')
 
     # Drift check (simple example)
     st.subheader('Data Drift Check')
